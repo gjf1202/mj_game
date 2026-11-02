@@ -1,0 +1,13 @@
+{
+  "name": "mj-lan",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Minimal four-player LAN Mahjong",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

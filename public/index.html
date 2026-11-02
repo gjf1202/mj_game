@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1e1f22">
+  <meta name="description" content="A quiet four-player Mahjong table for your local network.">
+  <title>MJ · Mahjong</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%232b2d30'/%3E%3Crect x='14' y='10' width='36' height='44' rx='5' fill='%23e5e1d7'/%3E%3Cpath d='M23 42V23l9 12 9-12v19' fill='none' stroke='%231f5b4b' stroke-width='4'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="app-header">
+    <a class="brand" href="/" aria-label="MJ home"><span class="brand-mark">麻</span><span>MJ</span><span class="brand-divider"></span><span class="brand-subtitle">FOUR SEATS</span></a>
+    <div class="header-meta"><span class="connection"><i id="connection-dot"></i><span id="connection-label">LAN</span></span><span class="header-divider"></span><span>136 TILES</span></div>
+  </header>
+
+  <main id="lobby" class="lobby">
+    <section class="lobby-content">
+      <div class="eyebrow"><span></span>01 / FIND A TABLE</div>
+      <h1>Four seats.<br>One table.</h1>
+      <p class="intro">A quiet round with friends on the same network.</p>
+      <div class="entry-panel">
+        <label for="nickname" class="field-label">Your name <small>UP TO 16 CHARACTERS</small></label>
+        <input id="nickname" maxlength="16" autocomplete="nickname" placeholder="Enter name">
+        <div class="entry-tabs" role="tablist" aria-label="Room actions">
+          <button id="create-tab" class="entry-tab active" role="tab" aria-selected="true" aria-controls="create-panel">Create</button>
+          <button id="join-tab" class="entry-tab" role="tab" aria-selected="false" aria-controls="join-panel">Join</button>
+        </div>
+        <div id="create-panel" role="tabpanel" aria-labelledby="create-tab">
+          <p class="field-note">Open a table and share the code.</p>
+          <button id="create-button" class="button primary full" type="button">Create table <span aria-hidden="true">↗</span></button>
+        </div>
+        <div id="join-panel" role="tabpanel" aria-labelledby="join-tab" hidden>
+          <label class="sr-only" for="room-code">Six-digit room code</label>
+          <input id="room-code" class="code-input" inputmode="numeric" maxlength="6" placeholder="Six-digit code" autocomplete="off">
+          <button id="join-button" class="button primary full" type="button">Join table <span aria-hidden="true">↗</span></button>
+        </div>
+        <div class="entry-footer"><span>4 players</span><i></i><span>Same Wi-Fi</span><i></i><span>No sign-up</span></div>
+      </div>
+    </section>
+    <section class="lobby-preview" aria-label="Mahjong tiles">
+      <div class="preview-heading"><span><i></i>THE TABLE</span><span>東 · 南 · 西 · 北</span></div>
+      <div class="preview-tiles" aria-hidden="true"><b>一<small>萬</small></b><b>五<small>筒</small></b><b>九<small>條</small></b><b class="red-tile">中</b></div>
+      <div class="preview-footer"><span>DRAW · DISCARD · CLAIM</span><span>FOUR PLAYERS</span></div>
+    </section>
+  </main>
+
+  <main id="game" class="game" hidden>
+    <div class="game-heading">
+      <div class="room-heading"><span class="eyebrow">TABLE</span><strong id="room-number"></strong><button id="copy-room" class="text-button" type="button">Copy invite</button></div>
+      <div class="table-tools"><span id="wall-label">WALL 0</span><button id="leave-button" class="text-button danger" type="button">Leave</button></div>
+    </div>
+    <section class="table-panel">
+      <div class="seat-row" id="seat-row"></div>
+      <div class="table-center">
+        <div class="table-center-header"><span id="phase-label">Waiting</span><span id="turn-label"></span></div>
+        <div id="discard-grid" class="discard-grid" aria-label="Discarded tiles"></div>
+        <div id="table-message" class="table-message" aria-live="polite"></div>
+      </div>
+      <section class="hand-section">
+        <div class="hand-header"><span>YOUR HAND <i id="hand-count"></i></span><span id="self-seat"></span></div>
+        <div id="melds" class="meld-row"></div>
+        <div id="hand" class="hand-row" aria-label="Your tiles"></div>
+        <div id="actions" class="actions"></div>
+      </section>
+    </section>
+    <section class="history-bar"><span>TABLE LOG</span><div id="table-log" aria-live="polite"></div></section>
+  </main>
+
+  <footer class="app-footer"><span>Local table · Casual rules</span><span>MJ <i></i> FOUR SEATS</span></footer>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="leave-dialog" class="modal">
+    <h2>Leave table?</h2>
+    <p>The current hand will be reset for everyone.</p>
+    <div class="modal-actions"><button id="cancel-leave" class="button secondary" type="button">Stay</button><button id="confirm-leave" class="button primary" type="button">Leave</button></div>
+  </dialog>
+</body>
+</html>
