@@ -116,6 +116,14 @@ input::placeholder { color: #777b83; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 
+.header-meta button[aria-pressed="true"] { color: var(--green-bright); }
+
+@media (max-width: 560px) {
+  .brand-subtitle, .brand-divider { display: none; }
+  .header-meta { gap: 10px; }
+  .header-meta .text-button { font-size: 10px; }
+}
+
 @media (max-width: 720px) {
   .app-header, .app-footer { padding-inline: 5vw; }
   .lobby { grid-template-columns: 1fr; gap: 24px; padding: 36px 0; }

@@ -15,6 +15,142 @@ let currentState = null;
 let eventSource = null;
 let toastTimer = 0;
 
+const mahjongAlerts = (() => {
+  const STORAGE_KEY = 'mj-alerts';
+  const FLASH_INTERVAL_MS = 900;
+  const originalTitle = document.title;
+  const button = document.getElementById('alerts-toggle');
+  let enabled = false;
+  let latestState = null;
+  let pendingKey = '';
+  let titleTimer = null;
+  let systemNotification = null;
+
+  try {
+    enabled = localStorage.getItem(STORAGE_KEY) === 'true';
+  } catch {
+    // Alerts still work for this page when storage is unavailable.
+  }
+
+  function updateButton() {
+    button.textContent = enabled ? 'Alerts on' : 'Alerts off';
+    button.setAttribute('aria-pressed', String(enabled));
+    button.title = enabled ? 'Turn and claim alerts on' : 'Turn and claim alerts off';
+  }
+
+  function clearDisplay() {
+    clearInterval(titleTimer);
+    titleTimer = null;
+    document.title = originalTitle;
+    if (systemNotification) {
+      systemNotification.close();
+      systemNotification = null;
+    }
+  }
+
+  function getPendingAlert(state) {
+    if (!state || !state.players[state.you]) {
+      return null;
+    }
+    const discardCount = state.players.reduce((total, player) => total + (player?.discards.length || 0), 0);
+    const handKey = `${state.code}/${state.you}/${state.dealer}/${state.wallCount}/${discardCount}`;
+    if (state.phase === 'playing' && state.turn === state.you) {
+      return { key: `${handKey}/turn/${state.hand.join(',')}`, message: 'Your turn.' };
+    }
+    if (state.phase === 'claim' && state.claimOptions.length > 0 && !state.claimResponses[state.you]) {
+      return {
+        key: `${handKey}/claim/${state.lastDiscard?.seat}/${state.lastDiscard?.tile}/${state.claimOptions.join(',')}`,
+        message: state.claimOptions.includes('hu') ? 'Hu available.' : 'Claim tile.'
+      };
+    }
+    return null;
+  }
+
+  function showSystemNotification(message) {
+    if (!window.isSecureContext || !('Notification' in window) || Notification.permission !== 'granted') {
+      return;
+    }
+    try {
+      systemNotification = new Notification(`MJ · ${message}`, {
+        body: `Room ${latestState.code}`,
+        tag: `mj-${latestState.code}`
+      });
+      systemNotification.onclick = () => {
+        window.focus();
+        clearDisplay();
+      };
+    } catch (error) {
+      console.warn('System notification unavailable:', error.name);
+    }
+  }
+
+  function refresh(force = false) {
+    const alert = enabled ? getPendingAlert(latestState) : null;
+    if (!alert) {
+      pendingKey = '';
+      clearDisplay();
+      return;
+    }
+    if (!force && pendingKey === alert.key) {
+      return;
+    }
+    pendingKey = alert.key;
+    clearDisplay();
+    if (document.visibilityState === 'visible') {
+      showToast(alert.message);
+      return;
+    }
+    const alertTitle = `${alert.message} · ${originalTitle}`;
+    document.title = alertTitle;
+    titleTimer = setInterval(() => {
+      document.title = document.title === originalTitle ? alertTitle : originalTitle;
+    }, FLASH_INTERVAL_MS);
+    showSystemNotification(alert.message);
+  }
+
+  async function toggleAlerts() {
+    enabled = !enabled;
+    try {
+      localStorage.setItem(STORAGE_KEY, String(enabled));
+    } catch {
+      // Persistence is optional; the switch remains usable.
+    }
+    updateButton();
+    if (!enabled) {
+      refresh();
+      showToast('Alerts off.');
+      return;
+    }
+    // Request permission only in response to the Alerts button, on secure origins.
+    if (window.isSecureContext && 'Notification' in window && Notification.permission === 'default') {
+      try {
+        await Notification.requestPermission();
+      } catch (error) {
+        console.warn('Notification permission unavailable:', error.name);
+      }
+    }
+    if (!enabled) {
+      return;
+    }
+    const systemAllowed = window.isSecureContext && 'Notification' in window && Notification.permission === 'granted';
+    showToast(systemAllowed ? 'Alerts on.' : 'Tab alerts on.');
+    refresh(true);
+  }
+
+  button.addEventListener('click', () => { void toggleAlerts(); });
+  document.addEventListener('visibilitychange', () => { refresh(true); });
+  window.addEventListener('pagehide', clearDisplay);
+  updateButton();
+
+  return {
+    updateState(state) {
+      latestState = state;
+      refresh();
+    }
+  };
+})();
+
+
 function tileParts(tile) {
   if (HONOR_NAMES[tile]) {
     return { main: HONOR_NAMES[tile], sub: '', red: tile === 'd1' };
@@ -54,6 +190,7 @@ async function api(path, body = {}) {
 
 function setState(state) {
   currentState = state;
+  mahjongAlerts.updateState(state);
   ui.lobby.hidden = true;
   ui.game.hidden = false;
   render();
@@ -70,6 +207,7 @@ function connectEvents() {
     setState(JSON.parse(event.data));
   };
   eventSource.onerror = () => {
+    mahjongAlerts.updateState(null);
     ui.connectionDot.parentElement.classList.add('offline');
     ui.connectionLabel.textContent = 'RECONNECT';
   };
@@ -314,6 +452,7 @@ ui.leaveButton.addEventListener('click', () => ui.leaveDialog.showModal());
 ui.cancelLeave.addEventListener('click', () => ui.leaveDialog.close());
 ui.confirmLeave.addEventListener('click', async () => {
   await runAction('leave');
+  mahjongAlerts.updateState(null);
   eventSource?.close();
   localStorage.removeItem(SESSION_KEY);
   location.reload();
